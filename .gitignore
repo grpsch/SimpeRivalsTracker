@@ -3,6 +3,7 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 .kotlin
+*.iml
 
 ### Eclipse ###
 .apt_generated
@@ -30,3 +31,5 @@ bin/
 .DS_Store
 # Project exclude paths
 /target/
+/.idea/
+dependency-reduced-pom.xml
