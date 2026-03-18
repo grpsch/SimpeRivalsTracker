@@ -1,9 +1,11 @@
 import java.io.IOException;
+import java.io.File;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.net.URI;
+import java.nio.file.Files;
 import java.util.Scanner;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -11,67 +13,58 @@ import com.google.gson.JsonParser;
 
 public class Main {
 
-    //throws IOException, InterruptedException
     public static void main(String[] args) throws IOException {
 
         Scanner scanner = new Scanner(System.in);
         HttpClient client = HttpClient.newHttpClient();
         Gson gson = new Gson();
-
         String input;
-        String uid;
-        JsonObject obj;
+        String uid = null;
+        JsonObject obj = null;
         HttpRequest request;
         HttpResponse<String> response = null;
+        Getter getter = new Getter();
+        Cacher cacher = new Cacher();
+        boolean notCached = true;
 
+        //create cache folder if not already existing
+        File file = new File("cache/" + uid + ".json");
+        file.getParentFile().mkdirs();
+
+        //ask user for input
         System.out.print("Enter username or uid to scan: ");
         input = scanner.nextLine();
 
-        if(input.matches("[0-9]+")) {
+        //scan cache folder
+        File cache = new File("cache");
+        File[] data = cache.listFiles();
 
-            uid = input;
-
-        } else {
-            System.out.println("Searching for: " + input + "...");
-
-            request = HttpRequest.newBuilder().uri(URI.create("https://marvelsapi.com/api/search_player/" + input)).GET().build();
-            try {
-                response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            } catch (IOException e) {
-                System.out.println("ERROR " + e.getMessage());
-            } catch (InterruptedException e) {
-                System.out.println("DENIED " + e.getMessage());
+        if (data != null) {
+            for (File cachefile : data) {
+                if (cachefile.getName().contains(input)) {
+                    String content = new String(Files.readAllBytes(cachefile.toPath()));
+                    obj = JsonParser.parseString(content).getAsJsonObject();
+                    notCached = false;
+                    break;
+                }
             }
-
-            System.out.println("Server status: " + response.statusCode());
-
-            obj = JsonParser.parseString(response.body()).getAsJsonObject();
-            uid = obj.get("uid").getAsString();
+        }
+        if (notCached) {
+            uid = getter.getID(input);
+            obj = getter.getData(uid);
+            cacher.cache(obj, uid, input);
         }
 
-        System.out.println("Player UID: " + uid);
-        System.out.println("Searching for player data...");
-        System.out.println();
-        request = HttpRequest.newBuilder().uri(URI.create("https://marvelsapi.com/api/player/profile/" + uid)).GET().build();
-        try {
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (IOException e) {
-            System.out.println("ERROR " + e.getMessage());
-        } catch (InterruptedException e) {
-            System.out.println("DENIED " + e.getMessage());
-        }
-        obj = JsonParser.parseString(response.body()).getAsJsonObject();
         JsonObject profile = obj.get("profile").getAsJsonObject();
+
         JsonObject rank = obj.get("rank").getAsJsonObject();
 
-        JsonObject heroes= obj.get("top_heroes").getAsJsonObject();
+        JsonObject heroes = obj.get("top_heroes").getAsJsonObject();
         JsonArray comp = heroes.get("competitive").getAsJsonArray();
         JsonObject hero1 = comp.get(0).getAsJsonObject();
         JsonObject hero2 = comp.get(1).getAsJsonObject();
         JsonObject hero3 = comp.get(2).getAsJsonObject();
 
-
-        //System.out.println(response.body());
         System.out.println("\u001B[4m" + "Profile:" + "\u001B[0m");
         System.out.println("Username: " + profile.get("player_name").getAsString());
         System.out.println("Level: " + profile.get("player_level").getAsString());
