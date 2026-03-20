@@ -31,7 +31,7 @@ public class Getter {
         return obj.get("uid").getAsString();
     }
 
-    public JsonObject getData(String input) {
+    public JsonObject getData(String input, String usecase) {
         String uid;
 
         if(input.matches("[0-9]+")) {
@@ -39,11 +39,17 @@ public class Getter {
         } else {
             uid = getID(input);
         }
+        if (usecase.equals("profile")) {
+            request = HttpRequest.newBuilder().uri(URI.create("https://marvelsapi.com/api/player/profile/" + uid)).GET().build();
+        }
+        if (usecase.equals("career")) {
+            request = HttpRequest.newBuilder().uri(URI.create("https://marvelsapi.com/api/player/" + uid + "/match-history")).GET().build();
+        }
 
         System.out.println("Player UID: " + uid);
         System.out.println("Searching for player data...");
         System.out.println();
-        request = HttpRequest.newBuilder().uri(URI.create("https://marvelsapi.com/api/player/profile/" + uid)).GET().build();
+
         try {
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (IOException e) {
